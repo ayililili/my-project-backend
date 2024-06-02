@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../modules/User');
 
-/* GET home page. */
-router.get('/users', async (req, res, next) => {
+router.post('/login', async (req, res) => {
   try {
-    const users = await User.find();
-    res.send(users);
+    const { username, password } = req.body;
+    const user = await User.findOne({ username: username })
+    res.send(user.password);
   } catch (error) {
     res.send(error);
   }
