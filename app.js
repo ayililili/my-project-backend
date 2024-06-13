@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
@@ -5,8 +7,7 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const mongoose = require('mongoose');
 
-require('dotenv').config();
-
+// 導入中間件、路由
 const session = require('./middlewares/session');
 const authRouter = require('./routes/auth');
 
