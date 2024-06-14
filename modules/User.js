@@ -16,9 +16,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     require :true,
     trim :true,
-    minlength: 5,
-    maxlength: 128,
-    match: /^\w+$/
   },
   email: {
     type: String,
@@ -34,13 +31,18 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.pre('save', async function (next) {
-  try {
-    const salt = await bcrypt.genSalt(10);
-    console.log(this);
-    this.password = await bcrypt.hash(this.password, salt);
+  if (this.isModified('password') || this.isNew) {
+    console.log('123');
+    try {
+      const salt = await bcrypt.genSalt(10);
+      console.log(this);
+      this.password = await bcrypt.hash(this.password, salt);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
     next();
-  } catch (error) {
-    next(error);
   }
 })
 
