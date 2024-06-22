@@ -8,8 +8,8 @@ const logger = require('morgan');
 const mongoose = require('mongoose');
 
 // 導入中間件、路由
-const session = require('./middlewares/session');
 const authRouter = require('./routes/auth');
+const verifyRouter = require('./routes/verify');
 
 // connect to database
 mongoose.connect(process.env.MONGO_URI);
@@ -26,9 +26,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'build')));
-app.use(session);
 
 app.use('/auth', authRouter);
+app.use('/verify', verifyRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
