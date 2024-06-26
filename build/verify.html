@@ -11,6 +11,9 @@
     <input type="text" name="token">
     <button>驗證</button>
   </form>
+  <button id="logout-button">logout</button>
+  <br>
+  <button id="refresh-token-button">refresh-token</button>
 
   <script>
     document.getElementById('get-token-button').addEventListener('click', async () => {
@@ -63,6 +66,50 @@
         }
       } catch (error) {
         alert('驗證請求失敗: ' + error.message);
+      }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          localStorage.removeItem('token');
+          alert('已登出');
+        } else {
+          alert('token產生失敗: ' + result.error);
+        }
+      } catch {
+        alert('token請求失敗: ' + error.message);
+      }
+    });
+    
+    document.getElementById('refresh-token-button').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/auth/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          localStorage.setItem('token', result.accessToken);
+          alert('token: ' + result.accessToken);
+        } else {
+          alert('token產生失敗: ' + result.error);
+        }
+      } catch {
+        alert('token請求失敗: ' + error.message);
       }
     });
   </script>
