@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const authenticateJWT = require('./middlewares/authenticateJWT');
 const VerificationToken = require('../modules/VerificationToken');
 const User = require('../modules/User');
+const sendMail = require('../utils/sendMail');
 
 router.get('/token', authenticateJWT, async (req, res) => {
   try {
@@ -26,8 +27,8 @@ router.get('/token', authenticateJWT, async (req, res) => {
   }
 })
 
-router.post('/verify', authenticateJWT, async (req, res) => {
-  const { token } = req.body;
+router.get('/verify', async (req, res) => {
+  const { token } = req.query;
 
   try {
     const verificationToken = await VerificationToken.findOne({ token });
@@ -40,10 +41,6 @@ router.post('/verify', authenticateJWT, async (req, res) => {
       return res.status(400).json({ error: 'User not found' });
     }
 
-    if (req.id !== verificationToken.userId.toString()) {
-      return res.status(400).json({ error: 'Id does not match' });
-    }
-
     user.isEmailVerified = true;
     await user.save();
 
@@ -52,6 +49,31 @@ router.post('/verify', authenticateJWT, async (req, res) => {
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     res.status(500).json({ error: 'An error occurred during email verification' });
+  }
+})
+
+router.post('/send-mail', authenticateJWT, async (req, res) => {
+  try {
+    const token = req.body.token;
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    const user = await User.findById(req.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    sendMail(
+      user.email,
+      '確認你的信箱',
+      `輸入代碼${token}或點擊以下連結: ${process.env.VERIFICATION_URL}${token}`,
+      `<p>輸入代碼${token}或點擊以下連結: <a href=${process.env.VERIFICATION_URL}${token}>點擊認證信箱</a>`
+    );
+
+    res.json({ message: 'Verification email sent' });
+  } catch (error) {
+      res.status(500).json({ error: 'An error occurred during sending verification email'});
   }
 })
 
