@@ -5,19 +5,15 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const mongoose = require('mongoose');
+const database = require('./utils/database');
 
 // 導入中間件、路由
 const authRouter = require('./routes/auth');
 const verifyRouter = require('./routes/verify');
+const youtubeRouter = require('./routes/youtube');
 
 // connect to database
-mongoose.connect(process.env.MONGO_URI);
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
-});
+database();
 
 const app = express();
 
@@ -29,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'build')));
 
 app.use('/auth', authRouter);
 app.use('/verify', verifyRouter);
+app.use('/youtube', youtubeRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
