@@ -5,15 +5,12 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const database = require('./utils/database');
+const mongoose = require('./db/mongoose');
 
 // 導入中間件、路由
 const authRouter = require('./routes/auth');
 const verifyRouter = require('./routes/verify');
 const youtubeRouter = require('./routes/youtube');
-
-// connect to database
-database();
 
 const app = express();
 

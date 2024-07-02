@@ -3,8 +3,8 @@ const router = express.Router();
 const crypto = require('crypto');
 
 const authenticateJWT = require('./middlewares/authenticateJWT');
-const VerificationToken = require('../modules/VerificationToken');
-const User = require('../modules/User');
+const VerificationToken = require('../db/modules/VerificationToken');
+const User = require('../db/modules/User');
 const sendMail = require('../utils/sendMail');
 
 router.get('/token', authenticateJWT, async (req, res) => {

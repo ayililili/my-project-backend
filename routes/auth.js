@@ -6,8 +6,8 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken');
 
 const authenticateJWT = require('./middlewares/authenticateJWT');
-const User = require('../modules/User');
-const RefreshToken = require('../modules/RefreshToken');
+const User = require('../db/modules/User');
+const RefreshToken = require('../db/modules/RefreshToken');
 
 router.post('/register', async (req, res) => {
   const { username, password, email } = req.body;
