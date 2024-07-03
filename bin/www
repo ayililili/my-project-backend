@@ -7,7 +7,8 @@
 const app = require('../app');
 const debug = require('debug')('my-project-backend:server');
 const http = require('http');
-const WebSocket = require('ws');
+const createWebSocketServer = require('../services/webSocket');
+const { initializeWebSocket } = require('../routes/chat');
 
 /**
  * Get port from environment and store in Express.
@@ -23,23 +24,11 @@ app.set('port', port);
 const server = http.createServer(app);
 
 /**
- * WebSocket server.
+ * Create WebSocket server.
  */
 
-const wss = new WebSocket.Server({ server });
-
-wss.on('connection', (ws) => {
-  console.log('Client connected');
-
-  ws.on('message', (message) => {
-      console.log(`Received: ${message}`);
-      ws.send(`Hello, you sent -> ${message}`);
-  });
-
-  ws.on('close', () => {
-      console.log('Client disconnected');
-  });
-});
+const wss = createWebSocketServer(server);
+initializeWebSocket(wss);
 
 /**
  * Listen on provided port, on all network interfaces.

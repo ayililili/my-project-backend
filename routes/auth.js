@@ -120,7 +120,6 @@ router.post('/token', async (req, res) => {
       res.json({ accessToken });
     });
   } catch (error) {
-    console.error('Error during token refresh:', error);
     res.status(500).json({ error: 'An error occurred during token refresh' });
   }
 });
