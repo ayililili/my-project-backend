@@ -8,7 +8,6 @@ const app = require('../app');
 const debug = require('debug')('my-project-backend:server');
 const http = require('http');
 const createWebSocketServer = require('../services/webSocket');
-const { initializeWebSocket } = require('../routes/chat');
 
 /**
  * Get port from environment and store in Express.
@@ -27,8 +26,7 @@ const server = http.createServer(app);
  * Create WebSocket server.
  */
 
-const wss = createWebSocketServer(server);
-initializeWebSocket(wss);
+createWebSocketServer(server);
 
 /**
  * Listen on provided port, on all network interfaces.

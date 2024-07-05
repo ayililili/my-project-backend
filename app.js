@@ -14,7 +14,6 @@ const app = express();
 const authRouter = require('./routes/auth');
 const verifyRouter = require('./routes/verify');
 const youtubeRouter = require('./routes/youtube');
-const chatRouter = require('./routes/chat').router;
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -25,7 +24,6 @@ app.use(express.static(path.join(__dirname, 'build')));
 app.use('/auth', authRouter);
 app.use('/verify', verifyRouter);
 app.use('/youtube', youtubeRouter);
-app.use('/chat', chatRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
