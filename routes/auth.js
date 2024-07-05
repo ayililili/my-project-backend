@@ -52,12 +52,12 @@ router.post('/login', async (req, res) => {
     }
 
     const accessToken = jwt.sign(
-      { id: user._id, username: user.username },
+      { id: user._id },
       process.env.SECRET_KEY,
       { expiresIn: '20m' }
     );
     const refreshToken = jwt.sign(
-      { id: user._id, username: user.username },
+      { id: user._id },
       process.env.REFRESH_SECRET_KEY,
     )
 
@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
       httpOnly: true,
       secure: true
     })
-    res.json({ accessToken });
+    res.json({ username: user.username, userId: user._id, accessToken });
   } catch (error) {
     res.status(500).json({ error: 'An error occurred during login' });
   }
@@ -113,7 +113,7 @@ router.post('/token', async (req, res) => {
       }
 
       const accessToken = jwt.sign(
-        { id: user.id, username: user.username },
+        { id: user.id },
         process.env.SECRET_KEY,
         { expiresIn: '20m' }
       );

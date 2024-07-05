@@ -70,6 +70,7 @@
         const result = await response.json();
         if (response.ok) {
           localStorage.setItem('token', result.accessToken);
+          localStorage.setItem('userId', result.userId);
           alert('登入成功。');
           window.location.href = 'verify.html';
         } else {

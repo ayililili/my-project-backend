@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <input id="msg">
+  <button id="btn" onclick="send()">send</button>
+  <div id ="msgs"></div>
+  <script>
+    const input = document.getElementById('msg');
+    const btn = document.getElementById('btn');
+    const messagesDiv = document.getElementById('msgs');
+
+    const ws = new WebSocket('ws://localhost:3000');
+    const userId = localStorage.getItem('userId');
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'register',
+        userId
+      }));
+    };
+
+    ws.onmessage = (res) => {
+        const messages = document.createElement('div');
+        messages.textContent = `Received: ${JSON.parse(res.data).content}`;
+        messagesDiv.appendChild(messages);
+    };
+
+    const send = () => {
+      ws.send(JSON.stringify({
+        type: 'message',
+        userId,
+        recipientId: userId,
+        content: input.value
+      }));
+    }
+  </script>
+</body>
+</html>

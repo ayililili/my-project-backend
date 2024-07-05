@@ -11,7 +11,6 @@ const authenticateJWT = (req, res, next) => {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
     req.id = user.id;
-    req.username = user.username;
     next();
   })
 }

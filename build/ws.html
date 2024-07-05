@@ -16,14 +16,14 @@
         const messageInput = document.getElementById('messageInput');
 
         const ws = new WebSocket('ws://localhost:3000');
-        
+
         ws.onopen = () => {
             console.log('Connected to server');
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = (res) => {
             const messages = document.createElement('div');
-            messages.textContent = `Received: ${JSON.parse(event.data).message}`;
+            messages.textContent = `Received: ${JSON.parse(res.data).message}`;
             messagesDiv.appendChild(messages);
         };
 
