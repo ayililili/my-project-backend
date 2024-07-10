@@ -10,9 +10,8 @@ const verificationTokenSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  createAt: {
+  createdAt: {
     type: Date,
-    required: true,
     default: Date.now,
     expires: '10m'
   }

@@ -1,54 +1,57 @@
-require('dotenv').config;
-
+require('dotenv').config();
 const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcryptjs')
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
+const createError = require('http-errors');
+const validateRegister = require('./middlewares/validateRegister');
+const handleValidationErrors = require('./middlewares/handleValidationErrors');
 const authenticateJWT = require('./middlewares/authenticateJWT');
 const User = require('../db/modules/User');
 const RefreshToken = require('../db/modules/RefreshToken');
 
-router.post('/register', async (req, res) => {
-  const { username, password, email } = req.body;
+const router = express.Router();
+
+router.post('/register', validateRegister, handleValidationErrors, async (req, res, next) => {
+  const { account, password, email } = req.body;
 
   try {
-    const userExists = await User.findOne({username});
+    const userExists = await User.findOne({ account });
     if (userExists) {
-      return res.status(400).json({ error: 'User already exists' });
+      return next(createError(400, 'User already exists'));
     }
 
-    const emailExists = await User.findOne({email});
+    const emailExists = await User.findOne({ email });
     if (emailExists) {
-      return res.status(400).json({ error: 'Email already exists' });
+      return next(createError(400, 'Email already exists'));
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new User({
-      username,
-      password,
+      account,
+      password: hashedPassword,
       email,
     });
+    await user.save();
 
-    const savedUser = await user.save();
-    res.status(201).json({ message: 'User registered successfully', userId: savedUser._id });
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    console.log('Error:', error);
-    res.status(500).json({ error: 'An error occurred while registering the user' });
+    next(createError(500, 'An error occurred while registering the user'));
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
+  const { account, password } = req.body;
+
   try {
-    const { username, password } = req.body;
-    
-    const user = await User.findOne({ username: username });
+    const user = await User.findOne({ account });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return next(createError(404, 'User not found'));
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid password' });
+      return next(createError(401, 'Invalid password'));
     }
 
     const accessToken = jwt.sign(
@@ -58,8 +61,8 @@ router.post('/login', async (req, res) => {
     );
     const refreshToken = jwt.sign(
       { id: user._id },
-      process.env.REFRESH_SECRET_KEY,
-    )
+      process.env.REFRESH_SECRET_KEY
+    );
 
     await RefreshToken.create({
       userId: user._id,
@@ -68,48 +71,60 @@ router.post('/login', async (req, res) => {
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true
-    })
-    res.json({ username: user.username, userId: user._id, accessToken });
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    res.json({
+      message: 'Login successful',
+      user: {
+        id: user._id,
+        account: user.account,
+        email: user.email,
+        username: user.username,
+        isEmailVerified: user.isEmailVerified
+      },
+      accessToken
+    });
   } catch (error) {
-    res.status(500).json({ error: 'An error occurred during login' });
+    next(createError(500, 'An error occurred during login'));
   }
 });
 
-router.post('/logout', authenticateJWT, async (req, res) => {
+router.post('/logout', authenticateJWT, async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
     if (!token) {
-      return res.status(400).json({ message: 'Refresh token not found' });
+      return next(createError(400, 'Refresh token not found'));
     }
 
     const savedToken = await RefreshToken.findOne({ token });
     if (!savedToken) {
-      return res.status(400).json({ error: 'Invalid refresh token' });
+      return next(createError(400, 'Invalid refresh token'));
     }
 
     await RefreshToken.deleteOne({ token });
-    res.clearCookie('refreshToken').json({ message: 'Account has been logged out'});
+    res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production' })
+      .json({ message: 'Account has been logged out' });
   } catch (error) {
-    res.status(500).json({ error: 'An error occurred during logout' });
+    next(createError(500, 'An error occurred during logout'));
   }
 });
 
-router.post('/token', async (req, res) => {
+router.post('/token', async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
     if (!token) {
-      return res.status(400).json({ error: 'Refresh token not found' });
+      return next(createError(400, 'Refresh token not found'));
     }
 
     const savedToken = await RefreshToken.findOne({ token });
     if (!savedToken) {
-      return res.status(400).json({ error: 'Invalid refresh token' });
+      return next(createError(400, 'Invalid refresh token'));
     }
 
     jwt.verify(token, process.env.REFRESH_SECRET_KEY, (err, user) => {
       if (err) {
-        return res.status(403).json({ error: 'Invalid refresh token' });
+        return next(createError(403, 'Invalid refresh token'));
       }
 
       const accessToken = jwt.sign(
@@ -120,7 +135,27 @@ router.post('/token', async (req, res) => {
       res.json({ accessToken });
     });
   } catch (error) {
-    res.status(500).json({ error: 'An error occurred during token refresh' });
+    next(createError(500, 'An error occurred during token refresh'));
+  }
+});
+
+router.get('/check-account/:account', async (req, res, next) => {
+  try {
+    const { account } = req.params;
+    const userExists = await User.findOne({ account });
+    res.json({ available: !userExists });
+  } catch (error) {
+    next(createError(500, 'An error occurred while checking the account'));
+  }
+});
+
+router.get('/check-email/:email', async (req, res, next) => {
+  try {
+    const { email } = req.params;
+    const emailExists = await User.findOne({ email });
+    res.json({ available: !emailExists });
+  } catch (error) {
+    next(createError(500, 'An error occurred while checking the email'));
   }
 });
 

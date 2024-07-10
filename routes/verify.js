@@ -1,44 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const createError = require('http-errors');
 
 const authenticateJWT = require('./middlewares/authenticateJWT');
 const VerificationToken = require('../db/modules/VerificationToken');
 const User = require('../db/modules/User');
 const sendMail = require('../utils/sendMail');
 
-router.get('/token', authenticateJWT, async (req, res) => {
+router.get('/token', authenticateJWT, async (req, res, next) => {
   try {
     const user = await User.findOne({ _id: req.id });
     if (user.isEmailVerified) {
-      return res.status(400).json({ error: 'Email has been authenticated' });
+      return next(createError(400, 'Email has already been verified'));
     }
 
-    const token = crypto.randomBytes(3).toString('hex');
+    const token = crypto.randomBytes(32).toString('hex');
     const verificationToken = new VerificationToken({
       userId: req.id,
       token
     });
     await verificationToken.save();
 
-    res.json({ token: token });
-  } catch {
-    res.status(500).json({ error: 'An error occurred during token generation' });
+    res.json({ token });
+  } catch (error) {
+    console.error('Error generating token:', error);
+    next(createError(500, 'An error occurred during token generation'));
   }
-})
+});
 
-router.get('/verify', async (req, res) => {
+router.get('/verify', async (req, res, next) => {
   const { token } = req.query;
 
   try {
     const verificationToken = await VerificationToken.findOne({ token });
     if (!verificationToken) {
-      return res.status(400).json({ error: 'Token not found' });
+      return next(createError(400, 'Token not found'));
     }
 
     const user = await User.findById(verificationToken.userId);
     if (!user) {
-      return res.status(400).json({ error: 'User not found' });
+      return next(createError(400, 'User not found'));
     }
 
     user.isEmailVerified = true;
@@ -48,33 +50,35 @@ router.get('/verify', async (req, res) => {
 
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'An error occurred during email verification' });
+    console.error('Error verifying token:', error);
+    next(createError(500, 'An error occurred during email verification'));
   }
-})
+});
 
-router.post('/send-mail', authenticateJWT, async (req, res) => {
+router.post('/send-mail', authenticateJWT, async (req, res, next) => {
   try {
-    const token = req.body.token;
+    const { token } = req.body;
     if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
+      return next(createError(400, 'Token is required'));
     }
 
     const user = await User.findById(req.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' })
+      return next(createError(404, 'User not found'));
     }
 
-    sendMail(
+    await sendMail(
       user.email,
-      '確認你的信箱',
-      `輸入代碼${token}或點擊以下連結: ${process.env.VERIFICATION_URL}${token}`,
-      `<p>輸入代碼${token}或點擊以下連結: <a href=${process.env.VERIFICATION_URL}${token}>點擊認證信箱</a>`
+      '確認你的電子郵件',
+      `請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：${process.env.VERIFICATION_URL}${token}`,
+      `<p>請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：<a href="${process.env.VERIFICATION_URL}${token}">點擊這裡確認你的電子郵件</a></p>`
     );
 
-    res.json({ message: 'Verification email sent' });
+    res.json({ message: 'Verification email has been Sent' });
   } catch (error) {
-      res.status(500).json({ error: 'An error occurred during sending verification email'});
+    console.error('Error sending verification email:', error);
+    next(createError(500, 'An error occurred while sending verification email'));
   }
-})
+});
 
 module.exports = router;

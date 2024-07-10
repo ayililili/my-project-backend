@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const createError = require('http-errors');
 
 const youtube = require('../utils/youtube');
 
-router.get('/search', async (req, res) => {
+router.get('/search', async (req, res, next) => {
   try {
     const q = req.query.q;
     if (!q) {
-      return res.status(400).json({ error: 'Keyword is required' });
+      return next(createError(400, 'Keyword is required'));
     }
 
     const response = await youtube.search.list({
@@ -18,8 +19,9 @@ router.get('/search', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).send(error.message);
+    console.error('Error occurred while searching YouTube:', error);
+    next(createError(500, 'An error occurred while searching YouTube'));
   }
-})
+});
 
 module.exports = router;
