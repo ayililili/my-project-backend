@@ -15,7 +15,7 @@ router.get('/token', authenticateJWT, async (req, res, next) => {
       return next(createError(400, 'Email has already been verified'));
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(6).toString('hex');
     const verificationToken = new VerificationToken({
       userId: req.id,
       token
@@ -62,9 +62,9 @@ router.post('/send-mail', authenticateJWT, async (req, res, next) => {
       return next(createError(400, 'Token is required'));
     }
 
-    const user = await User.findById(req.id);
-    if (!user) {
-      return next(createError(404, 'User not found'));
+    const tokenExists = await VerificationToken.findOne({ token })
+    if (!tokenExists) {
+      return next(createError(404, 'Token not found'));
     }
 
     await sendMail(
