@@ -14,6 +14,7 @@ const app = express();
 // 導入中間件、路由
 const authRouter = require('./routes/auth');
 const verifyRouter = require('./routes/verify');
+const passwordRouter = require('./routes/password');
 const youtubeRouter = require('./routes/youtube');
 
 // 使用 CORS 中間件
@@ -34,6 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 使用路由
 app.use('/auth', authRouter);
+app.use('password', passwordRouter);
 app.use('/verify', verifyRouter);
 app.use('/youtube', youtubeRouter);
 

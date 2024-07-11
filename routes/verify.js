@@ -8,7 +8,7 @@ const VerificationToken = require('../db/modules/VerificationToken');
 const User = require('../db/modules/User');
 const sendMail = require('../utils/sendMail');
 
-router.get('/token', authenticateJWT, async (req, res, next) => {
+router.post('/verify-email', authenticateJWT, async (req, res, next) => {
   try {
     const user = await User.findOne({ _id: req.id });
     if (user.isEmailVerified) {
@@ -18,29 +18,37 @@ router.get('/token', authenticateJWT, async (req, res, next) => {
     const token = crypto.randomBytes(6).toString('hex');
     const verificationToken = new VerificationToken({
       userId: req.id,
-      token
+      token,
+      type: 'mail'
     });
     await verificationToken.save();
 
-    res.json({ token });
+    await sendMail(
+      user.email,
+      '確認你的電子郵件',
+      `請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：${process.env.VERIFICATION_URL}?token=${token}`,
+      `<p>請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：<a href="${process.env.VERIFICATION_URL}?token=${token}">點擊這裡確認你的電子郵件</a></p>`
+    );
+
+    res.json({ message: 'Verification email has been sent' });
   } catch (error) {
-    console.error('Error generating token:', error);
-    next(createError(500, 'An error occurred during token generation'));
+    console.error('Error generating token or sending email:', error);
+    next(createError(500, 'An error occurred during token generation or email sending'));
   }
 });
 
-router.get('/verify', async (req, res, next) => {
+router.get('/verify-token', async (req, res) => {
   const { token } = req.query;
 
   try {
     const verificationToken = await VerificationToken.findOne({ token });
     if (!verificationToken) {
-      return next(createError(400, 'Token not found'));
+      return res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
     }
 
     const user = await User.findById(verificationToken.userId);
     if (!user) {
-      return next(createError(400, 'User not found'));
+      return res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
     }
 
     user.isEmailVerified = true;
@@ -48,36 +56,10 @@ router.get('/verify', async (req, res, next) => {
 
     await VerificationToken.deleteOne({ token });
 
-    res.json({ message: 'Email verified successfully' });
+    res.redirect(`${process.env.FRONTEND_URL}/verification?status=success`);
   } catch (error) {
     console.error('Error verifying token:', error);
-    next(createError(500, 'An error occurred during email verification'));
-  }
-});
-
-router.post('/send-mail', authenticateJWT, async (req, res, next) => {
-  try {
-    const { token } = req.body;
-    if (!token) {
-      return next(createError(400, 'Token is required'));
-    }
-
-    const tokenExists = await VerificationToken.findOne({ token })
-    if (!tokenExists) {
-      return next(createError(404, 'Token not found'));
-    }
-
-    await sendMail(
-      user.email,
-      '確認你的電子郵件',
-      `請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：${process.env.VERIFICATION_URL}${token}`,
-      `<p>請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：<a href="${process.env.VERIFICATION_URL}${token}">點擊這裡確認你的電子郵件</a></p>`
-    );
-
-    res.json({ message: 'Verification email has been Sent' });
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    next(createError(500, 'An error occurred while sending verification email'));
+    res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
   }
 });
 
