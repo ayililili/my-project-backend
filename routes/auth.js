@@ -139,6 +139,20 @@ router.post('/token', async (req, res, next) => {
   }
 });
 
+router.post('/check-token', async (req, res, next) => {
+  const { token } = req.body;
+  if (!token) {
+    return next(createError(400, 'Token missing'));
+  }
+
+  jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
+    if (err) {
+      return next(createError(403, 'Invalid or expired token'));
+    }
+    res.status(200).json({ message: 'Token is valid', userId: user.id });
+  });
+});
+
 router.get('/check-account/:account', async (req, res, next) => {
   try {
     const { account } = req.params;

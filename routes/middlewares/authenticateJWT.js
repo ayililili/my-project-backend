@@ -2,7 +2,12 @@ const jwt = require('jsonwebtoken');
 const createError = require('http-errors');
 
 const authenticateJWT = (req, res, next) => {
-  const token = req.get('authorization');
+  const authHeader = req.get('authorization');
+  if (!authHeader) {
+    return next(createError(401, 'Authorization header missing'));
+  }
+
+  const token = authHeader.split(' ')[1];
   if (!token) {
     return next(createError(401, 'Token missing'));
   }

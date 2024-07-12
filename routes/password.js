@@ -29,8 +29,8 @@ router.post('/forgot-password', async (req, res, next) => {
     await sendMail(
       user.email,
       '重設密碼',
-      `請點擊以下鏈接以重設密碼：${process.env.RESET_PASSWORD_URL}?token=${token}`,
-      `<p>請點擊以下鏈接以重設密碼：<a href="${process.env.RESET_PASSWORD_URL}?token=${token}">點擊這裡重設密碼</a></p>`
+      `請輸入代碼 ${token} 或點擊以下鏈接以重設密碼：${process.env.FRONTEND_URL}/verify-reset-token?token=${token}`,
+      `<p>請輸入代碼 ${token} 或點擊以下鏈接以重設密碼：<a href="${process.env.FRONTEND_URL}/verify-reset-token?token=${token}">點擊這裡重設密碼</a></p>`
     );
 
     res.json({ message: 'Password reset email has been sent' });
@@ -40,24 +40,24 @@ router.post('/forgot-password', async (req, res, next) => {
   }
 });
 
-router.get('/reset-password', async (req, res) => {
+router.get('/reset-password', async (req, res, next) => {
   const { token } = req.query;
 
   try {
     const resetToken = await VerificationToken.findOne({ token, type: 'password' });
     if (!resetToken) {
-      return res.redirect(`${process.env.FRONTEND_URL}/reset-password?status=failed`);
+      return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
     const user = await User.findById(resetToken.userId);
     if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL}/reset-password?status=failed`);
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.redirect(`${process.env.FRONTEND_URL}/reset-password?token=${token}`);
+    res.json({ message: 'Token is valid', token });
   } catch (error) {
     console.error('Error verifying token:', error);
-    res.redirect(`${process.env.FRONTEND_URL}/reset-password?status=failed`);
+    next(createError(500, 'An error occurred during token verification'));
   }
 });
 
