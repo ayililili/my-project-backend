@@ -18,17 +18,11 @@ const passwordRouter = require('./routes/password');
 const youtubeRouter = require('./routes/youtube');
 
 // 使用 CORS 中間件
-const allowedOrigins = ['http://localhost:5173'];
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
+  origin: process.env.FRONTEND_URL, // 指定允許的來源
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // 允許的方法
+  allowedHeaders: 'Content-Type,Authorization', // 允許的標頭
+  credentials: true, // 允許攜帶憑證
 }));
 
 // 使用日誌記錄中間件
