@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
@@ -11,6 +12,10 @@ const sendMail = require('../utils/sendMail');
 router.post('/verify-email', authenticateJWT, async (req, res, next) => {
   try {
     const user = await User.findOne({ _id: req.id });
+    if (!user) {
+      return next(createError(404, 'User not found'));
+    }
+
     if (user.isEmailVerified) {
       return next(createError(400, 'Email has already been verified'));
     }
@@ -19,15 +24,15 @@ router.post('/verify-email', authenticateJWT, async (req, res, next) => {
     const verificationToken = new VerificationToken({
       userId: req.id,
       token,
-      type: 'mail'
+      type: 'email'
     });
     await verificationToken.save();
 
     await sendMail(
       user.email,
       '確認你的電子郵件',
-      `請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：${process.env.VERIFICATION_URL}?token=${token}`,
-      `<p>請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：<a href="${process.env.VERIFICATION_URL}?token=${token}">點擊這裡確認你的電子郵件</a></p>`
+      `請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+      `<p>請輸入代碼 ${token} 或點擊以下鏈接以驗證你的電子郵件：<a href="${process.env.FRONTEND_URL}/verify-email?token=${token}">點擊這裡確認你的電子郵件</a></p>`
     );
 
     res.json({ message: 'Verification email has been sent' });
@@ -37,18 +42,18 @@ router.post('/verify-email', authenticateJWT, async (req, res, next) => {
   }
 });
 
-router.get('/verify-token', async (req, res) => {
+router.get('/verify-token', async (req, res, next) => {
   const { token } = req.query;
 
   try {
-    const verificationToken = await VerificationToken.findOne({ token });
+    const verificationToken = await VerificationToken.findOne({ token, type: 'email' });
     if (!verificationToken) {
-      return res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
+      return res.status(400).json({ status: 'failed', message: 'Invalid or expired token' });
     }
 
     const user = await User.findById(verificationToken.userId);
     if (!user) {
-      return res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
+      return res.status(400).json({ status: 'failed', message: 'User not found' });
     }
 
     user.isEmailVerified = true;
@@ -56,10 +61,10 @@ router.get('/verify-token', async (req, res) => {
 
     await VerificationToken.deleteOne({ token });
 
-    res.redirect(`${process.env.FRONTEND_URL}/verification?status=success`);
+    res.json({ status: 'success', message: 'Email verified successfully' });
   } catch (error) {
     console.error('Error verifying token:', error);
-    res.redirect(`${process.env.FRONTEND_URL}/verification?status=failed`);
+    next(createError(500, 'Internal server error'));
   }
 });
 

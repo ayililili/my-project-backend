@@ -13,7 +13,7 @@ const app = express();
 
 // 導入中間件、路由
 const authRouter = require('./routes/auth');
-const verifyRouter = require('./routes/verify');
+const emailRouter = require('./routes/email');
 const passwordRouter = require('./routes/password');
 const youtubeRouter = require('./routes/youtube');
 
@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 使用路由
 app.use('/auth', authRouter);
 app.use('/password', passwordRouter);
-app.use('/verify', verifyRouter);
+app.use('/email', emailRouter);
 app.use('/youtube', youtubeRouter);
 
 // 捕捉 404 錯誤並轉發給錯誤處理中間件

@@ -173,4 +173,12 @@ router.get('/check-email/:email', async (req, res, next) => {
   }
 });
 
+router.get('/test', authenticateJWT, (req, res) => {
+  try{
+    res.json({ msg: "test" });
+  } catch (error) {
+    next(createError(500, 'error'));
+  }
+})
+
 module.exports = router;
